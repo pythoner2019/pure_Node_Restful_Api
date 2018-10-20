@@ -2,9 +2,11 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 const StringDecoder = require('string_decoder').StringDecoder;
-const config = require('./config');
+const config = require('./lib/config');
 const fs = require('fs');
 const _data = require('./lib/data');
+const handlers = require('./lib/handlers');
+const helpers = require('./lib/helpers');
 
 /*
 //Test
@@ -25,6 +27,7 @@ _data.update('test', 'newFile',{'nice': 'fuck'}, (err, data) => {
 _data.delete('test', 'newFile', (err, data) => {
 	console.log('This is the error', err);
 })
+
 */
 
 
@@ -54,7 +57,7 @@ const unifiedServer = function(req, res) {
 			'queryStringObject': queryStringObject,
 			'method': method,
 			'headers': headers,
-			'payload': buffer
+			'payload': helpers.parseJsonToObject(buffer)
 		}
 
 		const chosenHandler = typeof(router[trimmedPath]) !== 'undefined' ? router[trimmedPath] : handlers.notFound;
@@ -75,6 +78,7 @@ const unifiedServer = function(req, res) {
 	});
 };
 
+/*------------------httpServer-----------------------*/
 
 const httpServer = http.createServer((req, res) => {
 	unifiedServer(req, res);	
@@ -84,7 +88,7 @@ httpServer.listen(config.httpPort, () => {
 	console.log(`The server is listen to port ${config.httpPort} now`);
 });
 
-/*-----------------------------------------*/
+/*-------------------httpsServer----------------------*/
 let httpsServerOptions = {
 	'key': fs.readFileSync('./https/key.pem'),
 	'cert': fs.readFileSync('./https/cert.pem')
@@ -100,17 +104,7 @@ httpsServer.listen(config.httpsPort, () => {
 
 
 
-let handlers = {};
-
-handlers.ping = (data, callback) => {
-	callback(200);
-}
-
-handlers.notFound = (data, callback) => {
-	callback(404);
-}
-
-
 const router = {
-	'ping': handlers.ping
+	'ping': handlers.ping,
+	'users': handlers.users
 }
